@@ -4,7 +4,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "@remix-run/react";
+} from '@remix-run/react';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -27,3 +27,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return <Outlet />;
 }
+import type { LinksFunction } from '@remix-run/node'; // or cloudflare/deno
+
+// ...
+
+import styles from './tailwind.css?url';
+
+export const links: LinksFunction = () => [{ rel: 'stylesheet', href: styles }];
