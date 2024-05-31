@@ -24,7 +24,7 @@ export default function Index() {
           <Card>
             <CardHeader>
               <CardTitle>Card Title</CardTitle>
-              <CardDescription>Card Description</CardDescription>
+              <CardDescription>Description</CardDescription>
             </CardHeader>
             <CardContent>
               <p>Card</p>
