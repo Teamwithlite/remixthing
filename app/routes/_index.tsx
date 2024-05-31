@@ -1,5 +1,8 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Calendar } from '@/components/ui/calendar'
+import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 import {
   Card,
@@ -104,6 +107,18 @@ export default function Index() {
               <Button>Finalized</Button>
             </CardFooter>
           </Card>
+        </div>
+        <div className='py-4'>
+          <RadioGroup defaultValue='option-one'>
+            <div className='flex items-center space-x-2'>
+              <RadioGroupItem value='option-one' id='option-one' />
+              <Label htmlFor='option-one'>One</Label>
+            </div>
+            <div className='flex items-center space-x-2'>
+              <RadioGroupItem value='option-two' id='option-two' />
+              <Label htmlFor='option-two'>Two</Label>
+            </div>
+          </RadioGroup>
         </div>
       </div>
     </div>
