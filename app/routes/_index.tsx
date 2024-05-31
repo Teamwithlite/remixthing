@@ -24,10 +24,10 @@ export default function Index() {
           <Card>
             <CardHeader>
               <CardTitle>Card Title</CardTitle>
-              <CardDescription>Card Description</CardDescription>
+              <CardDescription>Description</CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Card Content</p>
+              <p>Card</p>
             </CardContent>
             <CardFooter>
               <p>Card Footer</p>
