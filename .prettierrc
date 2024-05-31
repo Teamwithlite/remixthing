@@ -1,12 +1,10 @@
 {
-  "arrowParens": "avoid",
+  "printWidth": 80,
+  "semi": false,
   "singleQuote": true,
-  "overrides": [
-    {
-      "files": ".changeset/**/*",
-      "options": {
-        "singleQuote": false
-      }
-    }
-  ]
+  "jsxSingleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "arrowParens": "always",
+  "tabWidth": 2
 }
