@@ -14,7 +14,15 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { json, useLoaderData } from '@remix-run/react'
-import { Select } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export async function loader() {
   return json({
@@ -135,7 +143,16 @@ export default function Index() {
           </label>
         </div>
         <div className='py-4'>
-          <Select>Yes</Select>
+          <Select>
+            <SelectTrigger className='w-[180px]'>
+              <SelectValue placeholder='Theme' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='light'>Light</SelectItem>
+              <SelectItem value='dark'>Dark</SelectItem>
+              <SelectItem value='system'>System</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
