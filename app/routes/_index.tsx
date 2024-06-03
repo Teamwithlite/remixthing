@@ -4,6 +4,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { json, useLoaderData } from '@remix-run/react'
+import { Select } from '@/components/ui/select'
 
 export async function loader() {
   return json({
@@ -86,14 +88,14 @@ export default function Index() {
           Submit
         </Button>
         <Input
-          className='w-auto'
-          placeholder='Card Content'
+          className='w-80'
+          placeholder='What image do you want to search?'
           value={webValue}
           onChange={handlewebChange}
         ></Input>
       </div>
       <div className='flex  flex-col  space-y-4 w-auto px-4 py-4'>
-        <div className=' flex w-80'>
+        <div className=' flex w-auto'>
           <Card>
             <CardHeader>
               <CardTitle>{cardTitle}</CardTitle>
@@ -119,6 +121,21 @@ export default function Index() {
               <Label htmlFor='option-two'>Two</Label>
             </div>
           </RadioGroup>
+        </div>
+        <div className='py-4'>
+          <Calendar />
+        </div>
+        <div>
+          <Checkbox id='terms' />
+          <label
+            htmlFor='terms'
+            className='text-sm px-4  font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+          >
+            What is this?
+          </label>
+        </div>
+        <div className='py-4'>
+          <Select>Yes</Select>
         </div>
       </div>
     </div>
