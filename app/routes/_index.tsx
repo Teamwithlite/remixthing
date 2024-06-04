@@ -39,7 +39,7 @@ export default function Index() {
   const [inputValue, setInputValue] = useState('')
   const [webValue, setWebValue] = useState('')
   const [cardTitle, setCardTitle] = useState('Card Title')
-  const [cardDes, setWebDes] = useState('What image do you want to search?')
+  const [cardDes, setCardDes] = useState('What image do you want to search?')
   const [imageUrl, setImageUrl] = useState('')
   const handleSubmit = () => {
     setCardTitle(inputValue)
@@ -47,7 +47,7 @@ export default function Index() {
   }
 
   const handleSubmitweb = async () => {
-    setWebDes(webValue)
+    setCardDes(webValue)
     setWebValue('')
     const image = await fetchImage(webValue)
     setImageUrl(image)
@@ -181,10 +181,8 @@ export default function Index() {
             </div>
           </div>
         </div>
-        <Separator />
-        <div className='flex px-10 py-4'>
-          <Separator className='my-4 bg-slate-700  ' orientation='vertical' />
-        </div>
+        <Separator orientation='vertical' />
+        <div className='flex px-10 py-4'></div>
       </div>
     </div>
   )
