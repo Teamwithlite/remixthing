@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export async function loader() {
   return json({
@@ -74,11 +75,11 @@ export default function Index() {
   }
 
   return (
-    <div className='container w-50 px-0 bg-slate-100'>
-      <nav className='container  bg-slate-700 px-5 py-5 rounded-sm text-white text-2xl font-bold'>
+    <div className='container w-50 px-0 bg-timberwolf'>
+      <nav className='container  bg-dirtgray px-5 py-5 rounded-sm text-white text-2xl font-bold'>
         Remix Test
       </nav>
-      <div className='grid grid-cols-2'>
+      <div className='grid grid-cols-2 '>
         <div>
           <div className='px-10 font-bold py-4'>
             What image do you want to search?
@@ -110,7 +111,7 @@ export default function Index() {
           </div>
           <div className='flex  flex-col  space-y-4 w-auto px-10  py-4'>
             <div className=' flex py-4 px-10 w-auto'>
-              <Card>
+              <Card className='bg-beaver'>
                 <CardHeader>
                   <CardTitle>{cardTitle}</CardTitle>
                   <CardDescription></CardDescription>
@@ -181,8 +182,66 @@ export default function Index() {
             </div>
           </div>
         </div>
-        <Separator orientation='vertical' />
-        <div className='flex px-10 py-4'></div>
+        <div>
+          <div className='flex'>
+            <Separator orientation='vertical' />
+            <Tabs defaultValue='account' className='w-[400px] px-10 py-5'>
+              <TabsList className='grid w-full grid-cols-2'>
+                <TabsTrigger value='account'>Account</TabsTrigger>
+                <TabsTrigger value='password'>Password</TabsTrigger>
+              </TabsList>
+              <TabsContent value='account'>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Account</CardTitle>
+                    <CardDescription>
+                      Make changes to your account here. Click save when you're
+                      done.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className='space-y-2'>
+                    <div className='space-y-1'>
+                      <Label htmlFor='name'>Name</Label>
+                      <Input id='name' defaultValue='Pedro Duarte' />
+                    </div>
+                    <div className='space-y-1'>
+                      <Label htmlFor='username'>Username</Label>
+                      <Input id='username' defaultValue='@peduarte' />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button>Save changes</Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              <TabsContent value='password'>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Password</CardTitle>
+                    <CardDescription>
+                      Change your password here. After saving, you'll be logged
+                      out.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className='space-y-2'>
+                    <div className='space-y-1'>
+                      <Label htmlFor='current'>Current password</Label>
+                      <Input id='current' type='password' />
+                    </div>
+                    <div className='space-y-1'>
+                      <Label htmlFor='new'>New password</Label>
+                      <Input id='new' type='password' />
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button>Save password</Button>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+          <Separator />
+        </div>
       </div>
     </div>
   )
