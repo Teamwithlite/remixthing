@@ -38,11 +38,11 @@ const config = {
         dirtgray: '#6E6A6F',
         gray: '#8492a6',
         'gray-light': '#d3dce6',
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
+        border: '#6E6A6F',
+        input: '#6E6A6F',
         ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        background: '#ECEBE4',
+        foreground: '#6E6A6F',
         primary: {
           DEFAULT: '#6E6A6F',
           foreground: 'hsl(var(--primary-foreground))',
@@ -60,7 +60,7 @@ const config = {
           foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
+          DEFAULT: '#ECEBE4',
           foreground: 'hsl(var(--accent-foreground))',
         },
         popover: {

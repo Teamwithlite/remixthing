@@ -97,7 +97,7 @@ export default function Index() {
           </div>
           <div className='flex  flex-col  space-y-4 w-auto px-10  py-4'>
             <div className=' flex py-4  w-auto'>
-              <Card className='bg-beaver '>
+              <Card>
                 <CardHeader>
                   <CardTitle>{cardTitle}</CardTitle>
                   <CardDescription></CardDescription>
