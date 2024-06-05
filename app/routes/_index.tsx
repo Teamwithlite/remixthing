@@ -75,48 +75,34 @@ export default function Index() {
   }
 
   return (
-    <div className='container w-50 px-0 bg-timberwolf'>
+    <div className='container  sm:w-full  px-0  bg-timberwolf '>
       <nav className='container  bg-dirtgray px-5 py-5 rounded-sm text-white text-2xl font-bold'>
         Remix Test
       </nav>
-      <div className='grid grid-cols-2 '>
+      <div className='lg:grid sm:container lg:grid-cols-2 '>
         <div>
           <div className='px-10 font-bold py-4'>
             What image do you want to search?
           </div>
-          <div className='flex space-x-3 px-10 pb-4'>
-            <Button className='w-auto' onClick={handleSubmit}>
+          <div className='flex space-x-3 px-10 pb-4 '>
+            <Button className='w-auto rounded-2xl' onClick={handleSubmit}>
               Submit
             </Button>
             <Input
-              className=' w-80'
+              className=' sm:w-80 lg:w-80  '
               placeholder='Card Title'
               value={inputValue}
               onChange={handleChange}
             ></Input>
           </div>
-          <div className='flex  space-x-3 px-10  py-4'>
-            <Button
-              className='w-auto bg-slate-500 rounded-2xl'
-              onClick={handleSubmitweb}
-            >
-              Submit
-            </Button>
-            <Input
-              className='w-80'
-              placeholder='What image do you want to search?'
-              value={webValue}
-              onChange={handlewebChange}
-            ></Input>
-          </div>
           <div className='flex  flex-col  space-y-4 w-auto px-10  py-4'>
-            <div className=' flex py-4 px-10 w-auto'>
-              <Card className='bg-beaver'>
+            <div className=' flex py-4  w-auto'>
+              <Card className='bg-beaver '>
                 <CardHeader>
                   <CardTitle>{cardTitle}</CardTitle>
                   <CardDescription></CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className='py-4 space-y-4'>
                   <p>{cardDes}</p>
                   {imageUrl && <img src={imageUrl} alt={cardDes} />}
                 </CardContent>
@@ -124,6 +110,17 @@ export default function Index() {
                   <Button>Finalized</Button>
                 </CardFooter>
               </Card>
+            </div>
+            <div className='flex  space-x-3  py-4'>
+              <Button className='w-auto rounded-2xl' onClick={handleSubmitweb}>
+                Submit
+              </Button>
+              <Input
+                className='w-80'
+                placeholder='What image do you want to search?'
+                value={webValue}
+                onChange={handlewebChange}
+              ></Input>
             </div>
             <Separator />
             <div className='font-bold'>Choose your option</div>
@@ -152,8 +149,8 @@ export default function Index() {
               </RadioGroup>
             </div>
             <Separator />
-            <div className='font-bold'>Calendar</div>
-            <div className='px-10 first-letter:py-4'>
+            <div className=' font-bold'>Calendar</div>
+            <div className='px-10'>
               <Calendar />
             </div>
             <Separator />
@@ -180,12 +177,13 @@ export default function Index() {
                 </SelectContent>
               </Select>
             </div>
+            <Separator />
           </div>
         </div>
         <div>
           <div className='flex'>
             <Separator orientation='vertical' />
-            <Tabs defaultValue='account' className='w-[400px] px-10 py-5'>
+            <Tabs defaultValue='account' className='w-[400px] px-10 py-5 '>
               <TabsList className='grid w-full grid-cols-2'>
                 <TabsTrigger value='account'>Account</TabsTrigger>
                 <TabsTrigger value='password'>Password</TabsTrigger>

@@ -13,7 +13,14 @@ const config = {
       center: true,
       padding: '2rem',
       screens: {
-        '2xl': '1400px',
+        sm: '576px',
+        // => @media (min-width: 576px) { ... }
+
+        md: '960px',
+        // => @media (min-width: 960px) { ... }
+
+        lg: '1440px',
+        // => @media (min-width: 1440px) { ... }
       },
     },
     extend: {
@@ -37,7 +44,7 @@ const config = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
+          DEFAULT: '#6E6A6F',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
@@ -61,7 +68,7 @@ const config = {
           foreground: 'hsl(var(--popover-foreground))',
         },
         card: {
-          DEFAULT: 'hsl(var(--card))',
+          DEFAULT: '#bfafa6',
           foreground: 'hsl(var(--card-foreground))',
         },
       },
