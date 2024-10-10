@@ -1,11 +1,7 @@
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Calendar } from '@/components/ui/calendar'
-import { Label } from '@/components/ui/label'
-import { useState } from 'react'
-import { Separator } from '@/components/ui/separator'
-import { Checkbox } from '@/components/ui/checkbox'
+import logo from '@/components/ui/image-removebg-preview.png'
 import {
   Card,
   CardContent,
@@ -14,232 +10,252 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { json, useLoaderData } from '@remix-run/react'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ArrowDown, ArrowUp } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
-export async function loader() {
-  return json({
-    ENV: {
-      GOOGLE_API_KEY: process.env.REACT_APP_GOOGLE_API_KEY,
-      FSEARCH_ENGINE_ID: process.env.REACT_APP_SEARCH_ENGINE_ID,
-    },
-  })
+interface Student {
+  Students: string
+  Gender: string
+  'After EPTS': string
+  'Area of Study (EPTS)': string
+  Affiliation: string
+  'Gavin Coolness Score': number | '?'
+  'Start Year': number | '?'
+  'End Year': number | '?'
 }
-const imageCache: Record<string, string> = {}
-export default function Index() {
-  const data = useLoaderData<typeof loader>()
-  const [inputValue, setInputValue] = useState('')
-  const [webValue, setWebValue] = useState('')
-  const [cardTitle, setCardTitle] = useState('Card Title')
-  const [cardDes, setCardDes] = useState('What image do you want to search?')
-  const [imageUrl, setImageUrl] = useState('')
-  const handleSubmit = () => {
-    setCardTitle(inputValue)
-    setInputValue('')
+
+interface Feedback {
+  key: keyof Student
+  guessedValue: string | number | '?'
+  isCorrect: boolean
+  hint?: 'higher' | 'lower'
+}
+
+export default function EPTSGame() {
+  const [students, setStudents] = useState<Student[]>([])
+  const [correctStudent, setCorrectStudent] = useState<Student | null>(null)
+  const [guessInput, setGuessInput] = useState('')
+  const [feedback, setFeedback] = useState<Feedback[]>([])
+  const [gameWon, setGameWon] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadStudents()
+  }, [])
+
+  const loadStudents = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('@/components/ui/EPTSdle.xlsx')
+      const arrayBuffer = await response.arrayBuffer()
+      const data = new Uint8Array(arrayBuffer)
+      const workbook = XLSX.read(data, { type: 'array' })
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Student[]
+
+      setStudents(jsonData)
+      const randomStudent =
+        jsonData[Math.floor(Math.random() * jsonData.length)]
+      setCorrectStudent(randomStudent)
+    } catch (error) {
+      setError('Error loading student data. Please try refreshing the page.')
+      console.error('Error loading Excel file:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSubmitweb = async () => {
-    setCardDes(webValue)
-    setWebValue('')
-    const image = await fetchImage(webValue)
-    setImageUrl(image)
-  }
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value)
-  }
-  const handlewebChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWebValue(e.target.value)
+  const compareNumeric = (
+    actual: number | '?',
+    guess: number | '?',
+  ): { isCorrect: boolean; hint?: 'higher' | 'lower' } => {
+    if (actual === '?' || guess === '?') return { isCorrect: actual === guess }
+    if (actual === guess) return { isCorrect: true }
+    return {
+      isCorrect: false,
+      hint: guess < actual ? 'higher' : 'lower',
+    }
   }
 
-  const fetchImage = async (query: string) => {
-    if (imageCache[query]) {
-      return imageCache[query]
+  const getFeedback = (
+    correctStudent: Student,
+    guessedStudent: Student,
+  ): Feedback[] => {
+    const feedbackFields: (keyof Student)[] = [
+      'Gender',
+      'After EPTS',
+      'Area of Study (EPTS)',
+      'Affiliation',
+      'Gavin Coolness Score',
+      'Start Year',
+      'End Year',
+    ]
+
+    return feedbackFields.map((field) => {
+      const actualValue = correctStudent[field]
+      const guessedValue = guessedStudent[field]
+
+      if (typeof actualValue === 'number' || actualValue === '?') {
+        const { isCorrect, hint } = compareNumeric(
+          actualValue as number | '?',
+          guessedValue as number | '?',
+        )
+        return {
+          key: field,
+          guessedValue,
+          isCorrect,
+          hint,
+        }
+      }
+
+      return {
+        key: field,
+        guessedValue,
+        isCorrect:
+          String(actualValue).toLowerCase() ===
+          String(guessedValue).toLowerCase(),
+      }
+    })
+  }
+
+  const handleGuess = () => {
+    if (!correctStudent) return
+
+    const guessedStudent = students.find(
+      (s) => s.Students.toLowerCase() === guessInput.toLowerCase(),
+    )
+
+    if (!guessedStudent) {
+      setError('Student not found. Please try another name.')
+      return
     }
 
-    const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${data.ENV.GOOGLE_API_KEY}&cx=${data.ENV.FSEARCH_ENGINE_ID}&q=${query}&searchType=image&num=1`,
+    if (guessedStudent.Students === correctStudent.Students) {
+      setGameWon(true)
+      setFeedback([])
+    } else {
+      setFeedback(getFeedback(correctStudent, guessedStudent))
+    }
+
+    setGuessInput('')
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleGuess()
+  }
+
+  const resetGame = () => {
+    const randomStudent = students[Math.floor(Math.random() * students.length)]
+    setCorrectStudent(randomStudent)
+    setGameWon(false)
+    setFeedback([])
+    setError(null)
+  }
+
+  if (loading) {
+    return (
+      <div className='flex justify-center items-center h-screen'>
+        <div className='animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500'></div>
+      </div>
     )
-    const info = await response.json()
-    const imageUrl = info.items[0].link
-    imageCache[query] = imageUrl
-    return imageUrl
   }
 
   return (
-    <div className='container  sm:w-full  px-0  bg-timberwolf '>
-      <nav className='container  bg-dirtgray px-5 py-5 rounded-sm text-white text-2xl font-bold'>
-        Remix Test
+    <div className='min-h-screen bg-gradient-to-r from-black flex flex-col items-center'>
+      <nav className='w-full bg-black px-5 py-4'>
+        <h1 className='text-[#E0E0E0] text-2xl font-bold text-center'>
+          EPTSdle
+        </h1>
       </nav>
-      <div className='lg:grid sm:container lg:grid-cols-2 '>
-        <div>
-          <div className='px-10 font-bold py-4'>
-            What image do you want to search?
-          </div>
-          <div className='flex space-x-3 px-10 pb-4 '>
-            <Button className='w-auto rounded-2xl' onClick={handleSubmit}>
-              Submit
-            </Button>
-            <Input
-              className=' sm:w-80 lg:w-80  '
-              placeholder='Card Title'
-              value={inputValue}
-              onChange={handleChange}
-            ></Input>
-          </div>
-          <div className='flex  flex-col  space-y-4 w-auto px-10  py-4'>
-            <div className=' flex py-4  w-auto'>
-              <Card>
-                <CardHeader>
-                  <CardTitle>{cardTitle}</CardTitle>
-                  <CardDescription></CardDescription>
-                </CardHeader>
-                <CardContent className='py-4 space-y-4'>
-                  <p>{cardDes}</p>
-                  {imageUrl && <img src={imageUrl} alt={cardDes} />}
-                </CardContent>
-                <CardFooter>
-                  <Button>Finalized</Button>
-                </CardFooter>
-              </Card>
-            </div>
-            <div className='flex  space-x-3  py-4'>
-              <Button className='w-auto rounded-2xl' onClick={handleSubmitweb}>
-                Submit
-              </Button>
+
+      <div className='px-4 py-6 w-full max-w-md'>
+        <Card className='bg-[#1F1F1F] shadow-xl rounded-3xl'>
+          <CardHeader>
+            <CardTitle className='text-[#E0E0E0] text-2xl'>
+              Guess the EPTS Student
+            </CardTitle>
+            <CardDescription className='text-[#B3B3B3]'>
+              Enter a student's name to guess. Get feedback on various
+              attributes!
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className='space-y-4'>
+            <div className='flex space-x-3'>
               <Input
-                className='w-80'
-                placeholder='What image do you want to search?'
-                value={webValue}
-                onChange={handlewebChange}
-              ></Input>
-            </div>
-            <Separator />
-            <div className='font-bold'>Choose your option</div>
-            <div className='flex px-10 pb-4 space-y-5'>
-              <RadioGroup className='space-y-3' defaultValue='option-one'>
-                <div className='flex items-center space-x-2'>
-                  <RadioGroupItem value='option-one' id='option-one' />
-                  <Label htmlFor='option-one'>One</Label>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <RadioGroupItem value='option-two' id='option-two' />
-                  <Label htmlFor='option-two'>Two</Label>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <RadioGroupItem value='option-three' id='option-three' />
-                  <Label htmlFor='option-three'>Three</Label>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <RadioGroupItem value='option-four' id='option-four' />
-                  <Label htmlFor='option-four'>Four</Label>
-                </div>
-                <div className='flex items-center space-x-2'>
-                  <RadioGroupItem value='option-five' id='option-five' />
-                  <Label htmlFor='option-five'>Five</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <Separator />
-            <div className=' font-bold'>Calendar</div>
-            <div className='px-10'>
-              <Calendar />
-            </div>
-            <Separator />
-            <div className='flex  py-4 px-10 items-center space-x-2'>
-              <Checkbox id='terms' />
-              <label
-                htmlFor='terms'
-                className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+                className='flex-grow bg-[#2C2C2C] text-white border-none rounded-xl'
+                placeholder='Enter student name'
+                value={guessInput}
+                onChange={(e) => {
+                  setGuessInput(e.target.value)
+                  setError(null)
+                }}
+                onKeyPress={handleKeyPress}
+                disabled={gameWon}
+              />
+              <Button
+                className='bg-[#3D5AFE] text-white rounded-2xl px-6 hover:bg-[#536DFE]'
+                onClick={handleGuess}
+                disabled={gameWon || !guessInput.trim()}
               >
-                Accept terms and conditions
-              </label>
+                Guess
+              </Button>
             </div>
-            <Separator />
-            <div className='font-bold'>Choose your theme</div>
-            <div className='px-10 pb-4'>
-              <Select>
-                <SelectTrigger className='w-[180px]'>
-                  <SelectValue placeholder='Theme' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='light'>Light</SelectItem>
-                  <SelectItem value='dark'>Dark</SelectItem>
-                  <SelectItem value='system'>System</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Separator />
-          </div>
-        </div>
-        <div>
-          <div className='flex'>
-            <Separator orientation='vertical' />
-            <Tabs defaultValue='account' className='w-[400px] px-10 py-5 '>
-              <TabsList className='grid w-full grid-cols-2'>
-                <TabsTrigger value='account'>Account</TabsTrigger>
-                <TabsTrigger value='password'>Password</TabsTrigger>
-              </TabsList>
-              <TabsContent value='account'>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account</CardTitle>
-                    <CardDescription>
-                      Make changes to your account here. Click save when you're
-                      done.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='space-y-2'>
-                    <div className='space-y-1'>
-                      <Label htmlFor='name'>Name</Label>
-                      <Input id='name' defaultValue='Pedro Duarte' />
+
+            {error && (
+              <div className='text-red-500 text-center py-2 px-4 rounded-lg bg-red-500/10'>
+                {error}
+              </div>
+            )}
+
+            {gameWon && (
+              <div className='text-green text-center py-2 px-4 rounded-lg bg-green-500/10 font-bold'>
+                Congratulations! You guessed the correct student!
+              </div>
+            )}
+
+            {feedback.length > 0 && (
+              <div className='space-y-2'>
+                <h3 className='font-bold text-white mb-4'>Feedback:</h3>
+                {feedback.map(({ key, guessedValue, isCorrect, hint }) => (
+                  <div
+                    key={key}
+                    className='flex justify-between items-center py-1'
+                  >
+                    <span className='text-white'>{key}:</span>
+                    <div className='flex items-center gap-2'>
+                      <div
+                        className={`px-3 py-1 rounded-lg flex items-center ${
+                          isCorrect
+                            ? 'bg-green  text-white border-green'
+                            : 'bg-red-500/20 text-white border border-red-500'
+                        }`}
+                      >
+                        {guessedValue}
+                        {hint &&
+                          (hint === 'higher' ? (
+                            <ArrowUp className='ml-2 h-4 w-4' />
+                          ) : (
+                            <ArrowDown className='ml-2 h-4 w-4' />
+                          ))}
+                      </div>
                     </div>
-                    <div className='space-y-1'>
-                      <Label htmlFor='username'>Username</Label>
-                      <Input id='username' defaultValue='@peduarte' />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button>Save changes</Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-              <TabsContent value='password'>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Password</CardTitle>
-                    <CardDescription>
-                      Change your password here. After saving, you'll be logged
-                      out.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='space-y-2'>
-                    <div className='space-y-1'>
-                      <Label htmlFor='current'>Current password</Label>
-                      <Input id='current' type='password' />
-                    </div>
-                    <div className='space-y-1'>
-                      <Label htmlFor='new'>New password</Label>
-                      <Input id='new' type='password' />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button>Save password</Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-          <Separator />
-        </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+
+          <CardFooter className='flex justify-center pt-4'>
+            <Button
+              onClick={resetGame}
+              className='bg-[#3D5AFE] text-white rounded-full px-8 py-2 hover:bg-[#536DFE]'
+            >
+              {gameWon ? 'Play Again' : 'Reset Game'}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   )
