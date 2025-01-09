@@ -1,335 +1,426 @@
-import React, { useState, useEffect, useRef } from 'react'
+// app/routes/_index.tsx
+import { useState } from 'react'
+import type { ActionFunction, LoaderFunction } from '@remix-run/node'
+import { json } from '@remix-run/node'
+import { Form, useActionData, useLoaderData } from '@remix-run/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { ArrowDown, ArrowUp } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Code, Copy, Check } from 'lucide-react'
+import * as cheerio from 'cheerio'
 
-interface Student {
-  Students: string
-  Gender: string
-  'After EPTS': string
-  'Area of Study (EPTS)': string
-  Affiliation: string
-  'Gavin Coolness Score': number | '?'
-  'Start Year': number | '?'
-  'End Year': number | '?'
+interface ExtractedButton {
+  type: string
+  variant: 'default' | 'secondary' | 'outline' | 'ghost'
+  size: 'default' | 'sm' | 'lg'
+  text: string
+  code: string
+  className?: string
 }
 
-interface Feedback {
-  key: keyof Student
-  guessedValue: string | number | '?'
-  isCorrect: boolean
-  hint?: 'higher' | 'lower'
+interface ExtractedTemplate {
+  name: string
+  component: string
+  code: string
 }
 
-interface GuessHistory {
-  student: Student
-  feedback: Feedback[]
+interface ExtractedAssets {
+  buttons: ExtractedButton[]
+  templates: ExtractedTemplate[]
 }
 
-export default function EPTSGame() {
-  const [students, setStudents] = useState<Student[]>([])
-  const [correctStudent, setCorrectStudent] = useState<Student | null>(null)
-  const [guessInput, setGuessInput] = useState('')
-  const [guessHistory, setGuessHistory] = useState<GuessHistory[]>([])
-  const [gameWon, setGameWon] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([])
-  const suggestionRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    loadStudents()
+// Helper Functions
+function extractButtonStyle(
+  element: cheerio.Element,
+  $: cheerio.CheerioAPI,
+): 'default' | 'secondary' | 'outline' | 'ghost' {
+  const classNames = $(element).attr('class') || ''
+  const styles = classNames.split(' ')
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        suggestionRef.current &&
-        !suggestionRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  useEffect(() => {
-    if (guessInput.length > 0) {
-      const filtered = students
-        .map((student) => student.Students)
-        .filter((name) => name.toLowerCase().includes(guessInput.toLowerCase()))
-        .slice(0, 5) // Limit to 5 suggestions
-      setFilteredSuggestions(filtered)
-      setShowSuggestions(filtered.length > 0)
-    } else {
-      setShowSuggestions(false)
-    }
-  }, [guessInput, students])
-
-  const loadStudents = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('@/components/ui/EPTSdle.xlsx')
-      const arrayBuffer = await response.arrayBuffer()
-      const data = new Uint8Array(arrayBuffer)
-      const workbook = XLSX.read(data, { type: 'array' })
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as Student[]
-
-      setStudents(jsonData)
-      const randomStudent =
-        jsonData[Math.floor(Math.random() * jsonData.length)]
-      setCorrectStudent(randomStudent)
-    } catch (error) {
-      setError('Error loading student data. Please try refreshing the page.')
-      console.error('Error loading Excel file:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Check for common button class patterns
+  if (
+    styles.some(
+      (s) => s.match(/(btn|button)-primary/i) || s.match(/bg-(blue|primary)/),
+    )
+  ) {
+    return 'default'
   }
-  const compareNumeric = (
-    actual: number | '?',
-    guess: number | '?',
-  ): { isCorrect: boolean; hint?: 'higher' | 'lower' } => {
-    if (actual === '?' || guess === '?') return { isCorrect: actual === guess }
-    if (actual === guess) return { isCorrect: true }
-    return {
-      isCorrect: false,
-      hint: guess < actual ? 'higher' : 'lower',
-    }
+  if (
+    styles.some(
+      (s) =>
+        s.match(/(btn|button)-secondary/i) ||
+        s.match(/bg-(gray|grey|secondary)/),
+    )
+  ) {
+    return 'secondary'
+  }
+  if (
+    styles.some(
+      (s) =>
+        s.match(/(btn|button)-outline/i) ||
+        (s.match(/border/) && !s.match(/bg-/)),
+    )
+  ) {
+    return 'outline'
+  }
+  if (
+    styles.some(
+      (s) =>
+        s.match(/(btn|button)-ghost/i) || (s.match(/text-/) && !s.match(/bg-/)),
+    )
+  ) {
+    return 'ghost'
   }
 
-  const getFeedback = (
-    correctStudent: Student,
-    guessedStudent: Student,
-  ): Feedback[] => {
-    const feedbackFields: (keyof Student)[] = [
-      'Gender',
-      'After EPTS',
-      'Area of Study (EPTS)',
-      'Affiliation',
-      'Gavin Coolness Score',
-      'Start Year',
-      'End Year',
-    ]
+  // Default to primary if no specific style is found
+  return 'default'
+}
 
-    return feedbackFields.map((field) => {
-      const actualValue = correctStudent[field]
-      const guessedValue = guessedStudent[field]
+function extractButtonSize(
+  element: cheerio.Element,
+  $: cheerio.CheerioAPI,
+): 'sm' | 'default' | 'lg' {
+  const classNames = $(element).attr('class') || ''
+  const styles = classNames.split(' ')
 
-      if (typeof actualValue === 'number' || actualValue === '?') {
-        const { isCorrect, hint } = compareNumeric(
-          actualValue as number | '?',
-          guessedValue as number | '?',
-        )
-        return {
-          key: field,
-          guessedValue,
-          isCorrect,
-          hint,
-        }
-      }
+  // Check for common size patterns
+  if (
+    styles.some(
+      (s) =>
+        s.match(/(btn|button)-sm/i) || s.match(/text-sm/) || s.match(/p-[1-2]/),
+    )
+  ) {
+    return 'sm'
+  }
+  if (
+    styles.some(
+      (s) =>
+        s.match(/(btn|button)-lg/i) || s.match(/text-lg/) || s.match(/p-[4-6]/),
+    )
+  ) {
+    return 'lg'
+  }
 
-      return {
-        key: field,
-        guessedValue,
-        isCorrect:
-          String(actualValue).toLowerCase() ===
-          String(guessedValue).toLowerCase(),
-      }
+  return 'default'
+}
+
+function cleanHTML(html: string): string {
+  return html
+    .replace(/(\r\n|\n|\r)/gm, '') // Remove newlines
+    .replace(/\s+/g, ' ') // Remove extra spaces
+    .trim()
+}
+
+function extractTemplate(
+  element: cheerio.Element,
+  $: cheerio.CheerioAPI,
+): ExtractedTemplate | null {
+  const $element = $(element)
+  const html = $.html(element)
+
+  // Skip small elements
+  if (html.length < 50) return null
+
+  // Skip if element is not significant
+  if (!$element.find('h1, h2, h3, h4, p, img, button').length) return null
+
+  const templateType = determineTemplateType(element, $)
+  if (!templateType) return null
+
+  return {
+    name: templateType,
+    component: cleanHTML(html),
+    code: cleanHTML(html),
+  }
+}
+
+function determineTemplateType(
+  element: cheerio.Element,
+  $: cheerio.CheerioAPI,
+): string | null {
+  const $element = $(element)
+  const html = $.html(element)
+
+  // Hero Section Detection
+  if (
+    $element.find('h1, h2').length > 0 &&
+    $element.find('p').length > 0 &&
+    $element.find('button, .btn, .button, a').length > 0 &&
+    html.length > 200
+  ) {
+    return 'Hero Section'
+  }
+
+  // Feature Card Detection
+  if (
+    $element.find('h3, h4').length > 0 &&
+    $element.find('p').length > 0 &&
+    html.length > 100 &&
+    html.length < 500
+  ) {
+    return 'Feature Card'
+  }
+
+  // Navigation Detection
+  if (
+    ($element.is('nav') || $element.find('nav').length > 0) &&
+    $element.find('a').length > 2
+  ) {
+    return 'Navigation'
+  }
+
+  // Footer Detection
+  if (
+    $element.is('footer') ||
+    ($element.find('a').length > 3 && html.toLowerCase().includes('copyright'))
+  ) {
+    return 'Footer'
+  }
+
+  return null
+}
+
+// Loader Function
+export const loader: LoaderFunction = async () => {
+  return json({
+    initialMessage: 'Enter a URL to extract website assets',
+  })
+}
+
+// Action Function
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData()
+  const url = formData.get('url') as string
+
+  if (!url) {
+    return json({
+      success: false,
+      error: 'Please provide a valid URL',
     })
   }
 
-  const handleGuess = () => {
-    if (!correctStudent) return
+  try {
+    // Validate URL
+    new URL(url)
 
-    const guessedStudent = students.find(
-      (s) => s.Students.toLowerCase() === guessInput.toLowerCase(),
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch webpage: ${response.statusText}`)
+    }
+
+    const html = await response.text()
+    const $ = cheerio.load(html)
+
+    const assets: ExtractedAssets = {
+      buttons: [],
+      templates: [],
+    }
+
+    // Extract buttons
+    $('button, .btn, .button, [class*="btn-"], [class*="button-"]').each(
+      (_, element) => {
+        const $el = $(element)
+        const buttonHtml = $.html(element)
+        const className = $el.attr('class')
+
+        assets.buttons.push({
+          type: 'Custom',
+          variant: extractButtonStyle(element, $),
+          size: extractButtonSize(element, $),
+          text: $el.text().trim() || 'Button',
+          code: cleanHTML(buttonHtml),
+          className,
+        })
+      },
     )
 
-    if (!guessedStudent) {
-      setError('Student not found. Please try another name.')
-      return
-    }
+    // Extract templates
+    $('section, div, header').each((_, element) => {
+      const template = extractTemplate(element, $)
+      if (template) {
+        assets.templates.push(template)
+      }
+    })
 
-    const newFeedback = getFeedback(correctStudent, guessedStudent)
-    const newGuessHistory = {
-      student: guessedStudent,
-      feedback: newFeedback,
-    }
+    // Remove duplicates and limit results
+    assets.buttons = assets.buttons
+      .filter(
+        (button, index, self) =>
+          index === self.findIndex((b) => b.code === button.code),
+      )
+      .slice(0, 6)
 
-    setGuessHistory([newGuessHistory, ...guessHistory])
+    assets.templates = assets.templates
+      .filter(
+        (template, index, self) =>
+          index === self.findIndex((t) => t.code === template.code),
+      )
+      .slice(0, 4)
 
-    if (guessedStudent.Students === correctStudent.Students) {
-      setGameWon(true)
-    }
-
-    setGuessInput('')
+    return json({
+      success: true,
+      assets,
+    })
+  } catch (error) {
+    return json({
+      success: false,
+      error:
+        'Failed to extract assets from the provided URL: ' +
+        (error as Error).message,
+    })
   }
+}
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleGuess()
-  }
+// AssetDisplay Component
+function AssetDisplay({
+  title,
+  preview,
+  code,
+}: {
+  title: string
+  preview: React.ReactNode
+  code: string
+}) {
+  const [showCode, setShowCode] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  const resetGame = () => {
-    const randomStudent = students[Math.floor(Math.random() * students.length)]
-    setCorrectStudent(randomStudent)
-    setGameWon(false)
-    setGuessHistory([])
-    setError(null)
-  }
-  const handleSuggestionClick = (suggestion: string) => {
-    setGuessInput(suggestion)
-    setShowSuggestions(false)
-  }
-
-  const GuessCard = ({ guess }: { guess: GuessHistory }) => (
-    <Card className='bg-[#1F1F1F] shadow-xl w-full rounded-3xl mb-4'>
-      <CardHeader>
-        <CardTitle className='text-[#E0E0E0] text-xl space-y-10'>
-          {guess.student.Students}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className='grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4'>
-          {guess.feedback.map(({ key, guessedValue, isCorrect, hint }) => (
-            <div key={key} className='flex  w-40 h-30 flex-col space-y-2'>
-              <span className='text-[#B3B3B3] text-sm'>{key}</span>
-              <div
-                className={`px-3 py-1 rounded-lg flex items-center justify-center ${
-                  isCorrect ? 'bg-green text-white' : 'bg-red-500 text-white'
-                }`}
-              >
-                <span className='truncate'>{guessedValue}</span>
-                {hint && (
-                  <span className='ml-1'>
-                    {hint === 'higher' ? (
-                      <ArrowUp className='h-4 w-4' />
-                    ) : (
-                      <ArrowDown className='h-4 w-4' />
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  if (loading) {
-    return (
-      <div className='flex justify-center items-center h-screen'>
-        <div className='animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500'></div>
-      </div>
-    )
+  const copyToClipboard = async () => {
+    await navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-r from-black flex flex-col items-center'>
-      <nav className='w-full bg-black px-5 py-4'>
-        <h1 className='text-[#E0E0E0] text-2xl font-bold text-center'>
-          EPTSdle
-        </h1>
-      </nav>
-
-      <div className='px-4 py-6 w-460'>
-        <Card className='bg-[#1F1F1F] w-full shadow-xl rounded-3xl mb-6'>
-          <CardHeader>
-            <CardTitle className='text-[#E0E0E0] text-2xl'>
-              Guess the EPTS Student
-            </CardTitle>
-            <CardDescription className='text-[#B3B3B3]'>
-              Enter a student's name to guess. Get feedback on various
-              attributes!
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className='space-y-4'>
-            <div className='flex flex-col relative' ref={suggestionRef}>
-              <div className='flex space-x-3'>
-                <Input
-                  className='flex-grow bg-[#2C2C2C] text-white border-none rounded-xl'
-                  placeholder='Enter student name'
-                  value={guessInput}
-                  onChange={(e) => {
-                    setGuessInput(e.target.value)
-                    setError(null)
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleGuess()
-                      setShowSuggestions(false)
-                    }
-                  }}
-                  disabled={gameWon}
-                />
-                <Button
-                  className='bg-[#3D5AFE] text-white rounded-2xl px-6 hover:bg-[#536DFE]'
-                  onClick={() => {
-                    handleGuess()
-                    setShowSuggestions(false)
-                  }}
-                  disabled={gameWon || !guessInput.trim()}
-                >
-                  Guess
-                </Button>
-              </div>
-
-              {showSuggestions && (
-                <div className='absolute top-full left-0 right-0 mt-1 bg-[#2C2C2C] rounded-xl shadow-lg z-10'>
-                  {filteredSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className='px-4 py-2 hover:bg-[#3D5AFE] cursor-pointer text-white'
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      {suggestion}
-                    </div>
-                  ))}
-                </div>
+    <div className='border rounded-lg p-4 space-y-4'>
+      <div className='flex justify-between items-center'>
+        <h3 className='font-medium'>{title}</h3>
+        <div className='space-x-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => setShowCode(!showCode)}
+          >
+            <Code className='w-4 h-4 mr-2' />
+            {showCode ? 'Hide Code' : 'Show Code'}
+          </Button>
+          {showCode && (
+            <Button variant='outline' size='sm' onClick={copyToClipboard}>
+              {copied ? (
+                <Check className='w-4 h-4 mr-2' />
+              ) : (
+                <Copy className='w-4 h-4 mr-2' />
               )}
-            </div>
-
-            {error && (
-              <div className='text-red-500 text-center py-2 px-4 rounded-lg bg-red-500/10'>
-                {error}
-              </div>
-            )}
-
-            {gameWon && (
-              <div className='text-white text-center py-2 px-4 rounded-lg bg-green font-bold'>
-                Congratulations! You guessed the correct student!
-              </div>
-            )}
-          </CardContent>
-
-          <CardFooter className='flex justify-center pt-4'>
-            <Button
-              onClick={resetGame}
-              className='bg-[#3D5AFE] text-white rounded-full px-8 py-2 hover:bg-[#536DFE]'
-            >
-              {gameWon ? 'Play Again' : 'Reset Game'}
+              {copied ? 'Copied!' : 'Copy'}
             </Button>
-          </CardFooter>
-        </Card>
-
-        <div className='space-y-4'>
-          {guessHistory.map((guess, index) => (
-            <GuessCard key={index} guess={guess} />
-          ))}
+          )}
         </div>
       </div>
+
+      <div className='border rounded p-6 bg-white dark:bg-gray-800'>
+        {preview}
+      </div>
+
+      {showCode && (
+        <pre className='bg-gray-100 dark:bg-gray-900 p-4 rounded overflow-x-auto'>
+          <code>{code}</code>
+        </pre>
+      )}
+    </div>
+  )
+}
+
+// Main Component
+export default function Index() {
+  const [url, setUrl] = useState('')
+  const loaderData = useLoaderData<typeof loader>()
+  const actionData = useActionData<typeof action>()
+
+  return (
+    <div className='container mx-auto p-6'>
+      <Card className='max-w-4xl mx-auto'>
+        <CardHeader>
+          <CardTitle>Website Asset Extractor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form method='post' className='space-y-4'>
+            <div className='flex gap-2'>
+              <Input
+                type='url'
+                name='url'
+                placeholder={loaderData.initialMessage}
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className='flex-1'
+                required
+              />
+              <Button type='submit'>Extract Assets</Button>
+            </div>
+          </Form>
+
+          {actionData?.success && actionData.assets && (
+            <Tabs defaultValue='buttons' className='mt-6'>
+              <TabsList>
+                <TabsTrigger value='buttons'>
+                  Buttons ({actionData.assets.buttons.length})
+                </TabsTrigger>
+                <TabsTrigger value='templates'>
+                  Templates ({actionData.assets.templates.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value='buttons' className='space-y-4'>
+                <div className='grid grid-cols-2 gap-4'>
+                  {actionData.assets.buttons.map((button, index) => (
+                    <AssetDisplay
+                      key={index}
+                      title={`${button.type} Button`}
+                      preview={
+                        <Button
+                          variant={button.variant}
+                          size={button.size}
+                          className='w-full'
+                        >
+                          {button.text}
+                        </Button>
+                      }
+                      code={button.code}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value='templates' className='space-y-4'>
+                {actionData.assets.templates.map((template, index) => (
+                  <AssetDisplay
+                    key={index}
+                    title={template.name}
+                    preview={
+                      <div
+                        dangerouslySetInnerHTML={{ __html: template.component }}
+                      />
+                    }
+                    code={template.code}
+                  />
+                ))}
+              </TabsContent>
+            </Tabs>
+          )}
+
+          {actionData?.success === false && (
+            <Alert className='mt-4'>
+              <AlertDescription>{actionData.error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
